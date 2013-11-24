@@ -167,6 +167,10 @@ class SbxMaster(controller.Master):
                         
                 # do the same thing for bing, other places where kids could search for bad stuff
                         
+                if (msg.request.host == "movies.netflix.com"):
+                    if ("/WiPlayer?" in msg.request.path) and ("&t=" in msg.request.path):
+                        movietitle = urllib.unquote_plus(urllib.unquote_plus(re.split("[?,/,#,&]+t=",msg.request.path)[1].split('&')[0]))
+                        print "================> Watching movie: {0}".format(movietitle)
                     
             conn.close()
 			
