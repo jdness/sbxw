@@ -1,0 +1,55 @@
+{% load staticfiles %}
+
+{% if latest_skintone_image_list %}
+    <h1>Recent images with high skin tone</h1>
+    {% for image in latest_skintone_image_list %}
+        <a href="{% static image.filename %}"><img src="{% static image.thumbnailfilename %}" /></a>
+    {% endfor %}
+{% else %}
+    <p>No recent images.</P>
+{% endif %}    
+
+{% if istitle_or_hasimages_requests %}
+    <h1>Recent webpages</h1>
+    <table border=1>
+        
+    {% for webrequest in istitle_or_hasimages_requests %}
+        {% if webrequest.adrequest %}
+            <!--<tr><TD>Ad from {{webrequest.server}}</TD><TD>{{ webrequest.t }}</TD><TR>-->
+        {% elif webrequest.images.count %}
+            {% if webrequest.istitle %}
+                <tr><TD><a href="{% url 'ui:webtitledetail' webrequest.title.id %}">{{ webrequest.title.title }} ({{ webrequest.title.id }})</a> - {{webrequest.server }}</TD>
+            {% else %}
+                <tr><TD>{{ webrequest.url }}</TD>
+            {% endif %}
+            <TD>{{ webrequest.t }}</TD><TR>
+            <TR><TD colspan=2>
+            {% for image in webrequest.images.all %}
+                <a href="{% static image.filename %}"><img src="{% static image.thumbnailfilename %}" /></a>
+            {% endfor %}
+            </TD>
+        {% elif webrequest.istitle %}
+            <!-- No images but there is a page title so display this one too. -->
+            <tr><TD><a href="{% url 'ui:webtitledetail' webrequest.title.id %}">{{ webrequest.title.title }}</a> - {{ webrequest.server }}</TD><TD>{{ webrequest.t }}</TD><TR>
+        {% endif %}  
+    {% endfor %}
+    </TABLE>
+{% else %}
+    <p>No recent webpages.</p>
+{% endif %}
+
+<HR>
+    
+{% if latest_search_list %}
+    <h1>Recent web searches</h1>
+    <ul>
+    {% for search in latest_search_list %}
+        <li>{{search.query}}</LI>
+    {% endfor %}
+    </UL>
+{% else %}
+    <p>No recent searches.</P>
+{% endif %}    
+
+<HR>
+    

@@ -1,0 +1,80 @@
+{% load staticfiles %}
+
+<form action="index">
+Show content from: 
+<select name="host">
+    {% for host in hosts %}
+        {% ifequal host.id filteredhost %}
+            <option value="{{ host.id }}" selected="selected">{{ host.hostname }}</option>
+        {% else %}
+            <option value="{{ host.id }}">{{ host.hostname }}</option>
+        {% endifequal %}
+    {% endfor %}
+</select>
+
+<select name="timeframe">
+    {% for timeframe,timecode in timeframes %}
+        {% ifequal timecode startingtimecode %}
+            <option value="{{ timecode }}" selected="selected">Observed {{ timeframe }}</option>
+        {% else %}
+            <option value="{{ timecode }}">{{ timeframe }}</option>
+        {% endifequal %}
+    {% endfor %}
+</select>
+
+<input type="submit" value="Update!" />
+</form>
+
+{% if latest_skintone_image_list %}
+    <h1><U>Recent images with high skin tone</U></h1>
+    {% for image in latest_skintone_image_list %}
+        <a href="{% url 'ui:webimagedetail' image.id %}"><img src="{% static image.thumbnailfilename %}" /></a>
+    {% endfor %}
+{% else %}
+    <p>No images with high skin tone.</P>
+{% endif %}    
+
+{% if istitle_or_hasimages_requests %}
+    <h1><U>Recent webpages with all images</u></h1>
+    <table border=1>
+        
+    {% for webrequest in istitle_or_hasimages_requests %}
+        {% if webrequest.adrequest %}
+            <!--<tr><TD>Ad from {{webrequest.server}}</TD><TD>{{ webrequest.t }}</TD><TR>-->
+        {% elif webrequest.images.count %}
+            {% if webrequest.istitle %}
+                <tr><TD><a href="{% url 'ui:webtitledetail' webrequest.title.id %}">{{ webrequest.title.title }} ({{ webrequest.title.id }})</a> - {{webrequest.server }}</TD>
+            {% else %}
+                <tr><TD>{{ webrequest.url }}</TD>
+            {% endif %}
+            <TD>{{ webrequest.t }}</TD><TR>
+            <TR><TD colspan=2>&nbsp;&nbsp;&nbsp;
+            {% for image in webrequest.images.all %}
+                <a href="{% url 'ui:webimagedetail' image.id %}"><img src="{% static image.thumbnailfilename %}" /></a>
+            {% endfor %}
+            </TD>
+        {% elif webrequest.istitle %}
+            <!-- No images but there is a page title so display this one too. -->
+            <tr><TD><a href="{% url 'ui:webtitledetail' webrequest.title.id %}">{{ webrequest.title.title }}</a> - {{ webrequest.server }}</TD><TD>{{ webrequest.t }}</TD><TR>
+        {% endif %}  
+    {% endfor %}
+    </TABLE>
+{% else %}
+    <p>No recent webpages.</p>
+{% endif %}
+
+<HR>
+    
+{% if latest_search_list %}
+    <h1><U>Recent web searches</U></h1>
+    <ul>
+    {% for search in latest_search_list %}
+        <li>{{search.query}}</LI>
+    {% endfor %}
+    </UL>
+{% else %}
+    <p>No recent searches.</P>
+{% endif %}    
+
+<HR>
+    

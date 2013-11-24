@@ -1,0 +1,13 @@
+{% load staticfiles %}
+
+<table border=1>
+    <TR><TD>URL:</TD><TD><a href={{image.webrequest.url}}>{{image.webrequest.url}}</a></TD></TR>
+    {% if image.sourcerequest %}
+        <TR><TD>From webpage:</TD><TD><a href={{image.sourcerequest.url}}>{{image.sourcerequest.url}}</a></TD></TR>
+    {% endif %}
+    <TR><TD>Size:</TD><TD>{{image.height}}x{{image.width}}</TD></TR>
+    <TR><TD>Downloaded:</TD><TD>{{image.webrequest.t}} on computer "{{image.webrequest.host.hostname}}"</TD></TR>
+    
+</table>
+
+<img src="{% static image.filename %}">
