@@ -157,7 +157,7 @@ class SbxMaster(controller.Master):
                         row = (c.lastrowid,referer_id)
                         c.execute("INSERT INTO ui_webimage (webrequest_id,sourcerequest_id) values (?,?)",row)
                     else:
-                        c.execute("INSERT INTO ui_webimage (webrequest_id) values (?)",c.lastrowid)
+                        c.execute("INSERT INTO ui_webimage (webrequest_id) values (?)",(c.lastrowid,))
                     conn.commit()
                     
                     webimage_id = c.lastrowid
