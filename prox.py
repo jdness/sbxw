@@ -69,8 +69,8 @@ def fetch_and_update_netflix_metadata(movietitle,webnetflix_id):
 #    "filename" varchar(255),
 #    "thumbnailfilename" varchar(255),
 #    "tone" real,
-#    "height" integer NOT NULL,
-#    "width" integer NOT NULL,
+#    "height" integer,
+#    "width" integer,
 #    "nudity" bool,
 #    "nudity_confidence" integer
 #);
