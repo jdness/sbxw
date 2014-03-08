@@ -2,7 +2,8 @@
 
 from libmproxy import controller, proxy
 import os, glob, sys
-import Image, cStringIO
+import cStringIO
+from PIL import Image
 import hashlib
 import os, glob, sys
 import zlib
@@ -10,6 +11,7 @@ import sqlite3
 import urllib
 import re 
 import datetime
+import time, threading, requests
 
 thumbnailsize = 128, 128
 staticpath = "ui//static//"
@@ -28,6 +30,36 @@ def get_skin_ratio(im):
 
     skin = sum([count for count, rgb in im.getcolors(im.size[0]*im.size[1]) if rgb[0]>60 and rgb[1]<(rgb[0]*0.85) and rgb[2]<(rgb[0]*0.7) and rgb[1]>(rgb[0]*0.4) and rgb[2]>(rgb[0]*0.2)])
     return float(skin)/float(im.size[0]*im.size[1])
+    
+def fetch_and_update_netflix_metadata(movietitle,webnetflix_id):
+
+    request = "http://www.omdbapi.com/?t={0}".format(movietitle)
+    r = requests.get(request)
+    
+    if r.json() and r.json()["Response"] == "True":
+        conn = sqlite3.connect('db.sqlite3')
+        conn.text_factory = str
+        c = conn.cursor()
+        
+        row = (r.json()["Rated"],r.json()["Plot"],r.json()["Poster"],r.json()["imdbID"],webnetflix_id)
+        c.execute("UPDATE ui_webnetflix set rating = ?, plot = ?, poster = ?, imdbid = ? where id = ?;",row)
+        conn.commit()
+        conn.close()
+        
+        print "Updated Netflix movie #{0} with rating {1}.".format(webnetflix_id,r.json()["Rated"])
+        
+        
+
+#CREATE TABLE "ui_webnetflix" (
+#    "id" integer NOT NULL PRIMARY KEY,
+#    "webrequest_id" integer NOT NULL UNIQUE REFERENCES "ui_webrequest" ("id"),
+#    "title" varchar(512) NOT NULL,
+#    "rating" varchar(10),
+#    "plot" varchar(2048),
+#    "poster" varchar(2048),
+#    "imdbid" varchar(32)
+#)
+                
 
 class SbxMaster(controller.Master):
     def __init__(self,server):
@@ -52,16 +84,20 @@ class SbxMaster(controller.Master):
         if (msg.headers["Content-Type"]) and ("image/jpeg" in msg.headers["Content-Type"][0]):
             if msg.content:
                 print "[IMG] -> {0}://{1}{2} ".format(msg.request.scheme,msg.request.host,msg.request.path)		
-                                    
+                
+                # print "[MSG content]: {0}".format(msg.content)                    
                 s = cStringIO.StringIO(msg.content)
+                
                 try:
                     img = Image.open(s)
                 except IOError:
                     # [IMG] -> https://pbs.twimg.com/media/BYGYoHUCEAAWxrj.jpg:large 
                     # File "/Library/Python/2.7/site-packages/PIL/Image.py", line 1980, in open
                     #  raise IOError("cannot identify image file")
+                    # print "[IMG IOError]."
                     return;
 		
+                print "[IMG format]: {0}".format(img.format)
                 # Only handling JPEGs for now
                 if img.format is 'JPG' or img.format is 'JPEG':
                     height, width = img.size
@@ -95,7 +131,7 @@ class SbxMaster(controller.Master):
                     
                     url = "{0}://{1}{2}".format(msg.request.scheme,msg.request.host,msg.request.path)
                     row = (1, msg.request.host, msg.request.client_conn.address[1], url, datetime.datetime.now())		
-                    c.execute("INSERT INTO ui_webrequest (host_id,server,port,url,t,istitle,isimage,issearch) VALUES (?,?,?,?,?,0,1,0); ",row)
+                    c.execute("INSERT INTO ui_webrequest (host_id,server,port,url,t,istitle,isimage,issearch,isnetflix) VALUES (?,?,?,?,?,0,1,0,0); ",row)
                     conn.commit()
                     print "Inserted request #{0}.".format(c.lastrowid)
 
@@ -120,9 +156,11 @@ class SbxMaster(controller.Master):
             c = conn.cursor()
             url = "{0}://{1}{2}".format(msg.request.scheme,msg.request.host,msg.request.path)
             row = (1, msg.request.host, msg.request.client_conn.address[1], url, datetime.datetime.now())		
-            c.execute("INSERT INTO ui_webrequest (host_id,server,port,url,t,istitle,isimage,issearch) VALUES (?,?,?,?,?,0,0,0); ",row)
+            c.execute("INSERT INTO ui_webrequest (host_id,server,port,url,t,istitle,isimage,issearch,isnetflix) VALUES (?,?,?,?,?,0,0,0,0); ",row)
             conn.commit()
             print "Inserted webrequest #{0}.".format(c.lastrowid)
+            
+            lastwebrequestid = c.lastrowid
 
             if (msg.code < 300):				
                 content = msg.content
@@ -138,40 +176,47 @@ class SbxMaster(controller.Master):
                         title = content.split('<title>')[1].split('</title>')[0].strip()
                         if len(title) > 0:
                             print "Page title: [{0}]".format(title)
-
-                            lastrowid = c.lastrowid
                             
-                            row = (True,lastrowid)
+                            row = (True,lastwebrequestid)
                             c.execute("UPDATE ui_webrequest set istitle = ? where id = ?;",row)
                             
-                            row = (lastrowid,title)
+                            row = (lastwebrequestid,title)
                             c.execute("INSERT INTO ui_webtitle (webrequest_id,title) values (?,?)",row)
                             conn.commit()
-                            print "Inserted webpage #{0}.".format(lastrowid)
+                            print "Inserted webpage #{0}.".format(c.lastrowid)
 					
                 if (msg.request.host == "www.google.com"):
                     if ("/search=" in msg.request.path) or ("&search=" in msg.request.path) or \
                         ("/#q=" in msg.request.path) or ("/search?" in msg.request.path):
                         # VALIDATE
                         querystring = urllib.unquote_plus(re.split("[?,/,#,&]+q=",msg.request.path)[1].split('&')[0])
-                        
-                        lastrowid = c.lastrowid
-                        
-                        row = (True,lastrowid)
+                                                
+                        row = (True,lastwebrequestid)
                         c.execute("UPDATE ui_webrequest set issearch = ? where id = ?;",row)
                         
-                        row = (lastrowid,querystring)
+                        row = (lastwebrequestid,querystring)
                         c.execute("INSERT INTO ui_websearch (webrequest_id,query) values (?,?);",row)
                         conn.commit()
-                        print "Inserted search #{0}: {1}.".format(lastrowid,querystring)
+                        print "Inserted search #{0}: {1}.".format(c.lastrowid,querystring)
                         
                 # do the same thing for bing, other places where kids could search for bad stuff
                         
                 if (msg.request.host == "movies.netflix.com"):
                     if ("/WiPlayer?" in msg.request.path) and ("&t=" in msg.request.path):
                         movietitle = urllib.unquote_plus(urllib.unquote_plus(re.split("[?,/,#,&]+t=",msg.request.path)[1].split('&')[0]))
-                        print "================> Watching movie: {0}".format(movietitle)
-                    
+                        if len(movietitle) > 0:
+                                                        
+                            row = (True,lastwebrequestid)
+                            c.execute("UPDATE ui_webrequest set isnetflix = ? where id = ?;",row)
+                            
+                            row = (lastwebrequestid,movietitle)
+                            c.execute("INSERT INTO ui_webnetflix (webrequest_id,title) values (?,?);",row)
+                            conn.commit()
+                            print "Inserted Netflix movie #{0}: {1}.".format(c.lastrowid,movietitle)
+                            
+                            omdb_thread = threading.Thread(target=fetch_and_update_netflix_metadata, args=[movietitle,c.lastrowid])
+                            omdb_thread.start()
+                                                
             conn.close()
 			
     	#elif (msg.code < 300):
