@@ -76,5 +76,28 @@ Show content from:
     <p>No recent searches.</P>
 {% endif %}    
 
+{% if latest_netflix_list %}
+    <h1><U>Recent Netflix movies watched</U></h1>
+    <table border=1><TR><TD>&nbsp;</TD><TD><B>Title</B></TD><TD><B>Rating</B></TD><TD><B>Watched on</B></TD></TR>
+    {% for movie in latest_netflix_list %}
+        <TR><TD rowspan=2>
+            {% if movie.imdbid %}
+                <a href=http://www.imdb.com/title/{{movie.imdbid}}>
+            {% endif %}
+            {% if movie.poster and movie.poster != "N/A" %}
+                <IMG SRC={{movie.poster}} height=150></a>
+            {% else %}
+                (No poster image)
+            {% endif %}
+            </TD><TD>
+            {% if movie.imdbid %}
+                <a href=http://www.imdb.com/title/{{movie.imdbid}}>
+            {% endif %}
+            {{movie.title}}</a></TD><TD>{{movie.rating}}</TD><TD>{{movie.webrequest.t}} on computer "{{movie.webrequest.host.hostname}}"</TR><TR><TD colspan=3>{{movie.plot}}</TD></TR>
+    {% endfor %}
+    </TABLE>
+{% else %}
+    <p>No recent Netflix movies watched.</P>
+{% endif %}   
 <HR>
     

@@ -15,6 +15,7 @@ class Webrequest(models.Model):
     istitle = models.BooleanField(default=False)
     isimage = models.BooleanField(default=False)
     issearch = models.BooleanField(default=False)
+    isnetflix = models.BooleanField(default=False)
     
     def adrequest(self):
         if (self.server == "ad.doubleclick.net" or self.server == "us-u.openx.net" or 
@@ -23,7 +24,8 @@ class Webrequest(models.Model):
             self.server == "platform.twitter.com" or self.server == "rad.msn.com" or
             self.server == "web.adblade.com" or self.server == "ct1.addthis.com" or
             self.server == "googleads.g.doubleclick.net" or self.server == "aax-us-west.amazon-adsystem.com" or
-            self.server == "aax-us-east.amazon-adsystem.com"):
+            self.server == "aax-us-east.amazon-adsystem.com" or self.server == "apis.google.com" or
+            self.server == "a-us-atl.netmng.com"):
             return True
         else:
             return False
@@ -56,4 +58,10 @@ class Websearch(models.Model):
     webrequest = models.OneToOneField(Webrequest, related_name='websearch')
     query = models.CharField(max_length=2048)
     
-    
+class Webnetflix(models.Model):
+    webrequest = models.OneToOneField(Webrequest, related_name='netflix')
+    title = models.CharField(max_length=512)
+    rating = models.CharField(max_length=10, null=True)
+    plot = models.CharField(max_length=2048, null=True)
+    poster = models.CharField(max_length=2048, null=True)
+    imdbid = models.CharField(max_length=32, null=True)
