@@ -60,6 +60,21 @@ def fetch_and_update_netflix_metadata(movietitle,webnetflix_id):
 #    "poster" varchar(2048),
 #    "imdbid" varchar(32)
 #)
+
+#CREATE TABLE "ui_webimage" (
+#    "id" integer NOT NULL PRIMARY KEY,
+#    "webrequest_id" integer NOT NULL REFERENCES "ui_webrequest" ("id"),
+#    "sourcerequest_id" integer REFERENCES "ui_webrequest" ("id"),
+#    "md5" varchar(48),
+#    "filename" varchar(255),
+#    "thumbnailfilename" varchar(255),
+#    "tone" real,
+#    "height" integer NOT NULL,
+#    "width" integer NOT NULL,
+#    "nudity" bool,
+#    "nudity_confidence" integer
+#);
+
                 
 
 class SbxMaster(controller.Master):
