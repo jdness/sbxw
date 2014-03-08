@@ -15,6 +15,7 @@ import time, threading, requests
 
 thumbnailsize = 128, 128
 staticpath = "ui//static//"
+triagepath = "ui//triage//"
 
 def get_skin_ratio(im):
     if im.mode is 'L':
@@ -100,17 +101,7 @@ class SbxMaster(controller.Master):
                 print "[IMG format]: {0}".format(img.format)
                 # Only handling JPEGs for now
                 if img.format is 'JPG' or img.format is 'JPEG':
-                    height, width = img.size
-                    skin_percent = get_skin_ratio(img) * 100
-                    hex = hashlib.md5(img.tostring()).hexdigest()
-                    filename = "{0:2.0f}_{1}.jpg".format(skin_percent,hex)
-                    print "  {0}: Dim: ({1},{2}) Tone {3:2.2f} ".format(filename,height,width,skin_percent)
-                    img.save(staticpath + filename)		
-
-                    img.thumbnail(thumbnailsize, Image.ANTIALIAS)
-                    thumbnailfilename = filename + ".thumbnail.jpg"
-                    img.save(staticpath + thumbnailfilename, "JPEG")
-
+                    
                     #conn = sqlite3.connect('sbx.db')
                     conn = sqlite3.connect('db.sqlite3')
                     conn.text_factory = str
@@ -128,21 +119,34 @@ class SbxMaster(controller.Master):
                             referer_id = False
                     else:
                         referer_id = False
-                    
+                        
                     url = "{0}://{1}{2}".format(msg.request.scheme,msg.request.host,msg.request.path)
                     row = (1, msg.request.host, msg.request.client_conn.address[1], url, datetime.datetime.now())		
+                    
                     c.execute("INSERT INTO ui_webrequest (host_id,server,port,url,t,istitle,isimage,issearch,isnetflix) VALUES (?,?,?,?,?,0,1,0,0); ",row)
                     conn.commit()
                     print "Inserted request #{0}.".format(c.lastrowid)
-
+                    
                     if (referer_id):
-                        row = (c.lastrowid,referer_id,hex,filename,thumbnailfilename,skin_percent,height,width)
-                        c.execute("INSERT INTO ui_webimage (webrequest_id,sourcerequest_id,md5,filename,thumbnailfilename,tone,height,width) values (?,?,?,?,?,?,?,?)",row)
+                        row = (c.lastrowid,referer_id)
+                        c.execute("INSERT INTO ui_webimage (webrequest_id,sourcerequest_id) values (?,?)",row)
                     else:
-                        row = (c.lastrowid,hex,filename,thumbnailfilename,skin_percent,height,width)
-                        c.execute("INSERT INTO ui_webimage (webrequest_id,md5,filename,thumbnailfilename,tone,height,width) values (?,?,?,?,?,?,?)",row)
+                        row = (c.lastrowid)
+                        c.execute("INSERT INTO ui_webimage (webrequest_id) values (?)",row)
                     conn.commit()
                     print "Inserted image #{0}.".format(c.lastrowid)
+                    
+#                    height, width = img.size
+#                    skin_percent = get_skin_ratio(img) * 100
+#                    hex = hashlib.md5(img.tostring()).hexdigest()
+#                    filename = "{0:2.0f}_{1}.jpg".format(skin_percent,hex)
+#                    print "  {0}: Dim: ({1},{2}) Tone {3:2.2f} ".format(filename,height,width,skin_percent)
+#                    img.thumbnail(thumbnailsize, Image.ANTIALIAS)
+#                    thumbnailfilename = filename + ".thumbnail.jpg"
+#                    img.save(staticpath + thumbnailfilename, "JPEG")
+                    
+                    filename = "{0}.jpg".format(c.lastrowid)                  
+                    img.save(triagepath + filename)		
 
                     conn.close()
 			
