@@ -49,7 +49,18 @@ def fetch_and_update_netflix_metadata(movietitle,webnetflix_id):
         
         print "Updated Netflix movie #{0} with rating {1}.".format(webnetflix_id,r.json()["Rated"])
         
-        
+def compute_image_metadata(img,webimage_id):
+    
+    height, width = img.size
+    skin_percent = get_skin_ratio(img) * 100
+    hex = hashlib.md5(img.tostring()).hexdigest()
+    filename = "{0:2.0f}_{1}.jpg".format(skin_percent,hex)
+    print "  {0}: Dim: ({1},{2}) Tone {3:2.2f} ".format(filename,height,width,skin_percent)
+    img.save(staticpath + filename)		
+    
+    img.thumbnail(thumbnailsize, Image.ANTIALIAS)
+    thumbnailfilename = filename + ".thumbnail.jpg"
+    img.save(staticpath + thumbnailfilename, "JPEG")
 
 #CREATE TABLE "ui_webnetflix" (
 #    "id" integer NOT NULL PRIMARY KEY,
@@ -149,20 +160,16 @@ class SbxMaster(controller.Master):
                         row = (c.lastrowid)
                         c.execute("INSERT INTO ui_webimage (webrequest_id) values (?)",row)
                     conn.commit()
-                    print "Inserted image #{0}.".format(c.lastrowid)
                     
-#                    height, width = img.size
-#                    skin_percent = get_skin_ratio(img) * 100
-#                    hex = hashlib.md5(img.tostring()).hexdigest()
-#                    filename = "{0:2.0f}_{1}.jpg".format(skin_percent,hex)
-#                    print "  {0}: Dim: ({1},{2}) Tone {3:2.2f} ".format(filename,height,width,skin_percent)
-#                    img.thumbnail(thumbnailsize, Image.ANTIALIAS)
-#                    thumbnailfilename = filename + ".thumbnail.jpg"
-#                    img.save(staticpath + thumbnailfilename, "JPEG")
+                    webimage_id = c.lastrowid
+                    print "Inserted image #{0}.".format(webimage_id)
                     
-                    filename = "{0}.jpg".format(c.lastrowid)                  
+                    filename = "{0}.jpg".format(webimage_id)                  
                     img.save(triagepath + filename)		
-
+                    
+                    metadata_thread = threading.Thread(target=compute_image_metadata, args=[img,webimage_id])
+                    metadata_thread.start()
+                    
                     conn.close()
 			
         elif (msg.headers["Content-Type"]) and (("text/html" in msg.headers["Content-Type"][0]) or 
